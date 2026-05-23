@@ -1,21 +1,26 @@
-import { Hono } from 'hono';
-import { serve } from '@hono/node-server';
-import { createServer, getServerPort } from '@devvit/web/server';
-import { triggers } from './routes/triggers';
-import { scheduler } from './routes/scheduler';
-import { menu } from './routes/menu';
+import { config } from "./config.js";
+import { scan } from "./scanner.js";
+import { logLead, getCsvPath } from "./csv-logger.js";
 
-const app = new Hono();
-const internal = new Hono();
+async function main() {
+  console.log(`🚀 Ellomas Reddit Scanner starting at ${new Date().toISOString()}`);
+  console.log(`   Target subreddits: ${config.subreddits.join(", ")}`);
+  console.log(`   Search terms: ${config.searchTerms.join(", ")}`);
 
-internal.route('/triggers', triggers);
-internal.route('/scheduler', scheduler);
-internal.route('/menu', menu);
+  const leads = await scan();
 
-app.route('/internal', internal);
+  if (leads.length === 0) {
+    console.log("\n📭 No leads found this scan.");
+  } else {
+    console.log(`\n📊 Found ${leads.length} lead(s). Writing to CSV...`);
+    for (const lead of leads) {
+      logLead(lead);
+    }
+    console.log(`\n✅ Done. Leads saved to ${getCsvPath()}`);
+  }
+}
 
-serve({
-  fetch: app.fetch,
-  createServer,
-  port: getServerPort(),
+main().catch((err) => {
+  console.error("Fatal error:", err);
+  process.exit(1);
 });
