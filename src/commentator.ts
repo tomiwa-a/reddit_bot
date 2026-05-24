@@ -12,6 +12,7 @@ export interface CommentConfig {
   dryRun: boolean;
   enabled: boolean;
   delayBetweenMs: number;
+  template?: string;
 }
 
 export interface CommentLog {

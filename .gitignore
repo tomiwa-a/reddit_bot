@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 data/leads.csv
+data/comments.csv
 data/cache.json
 *.log
 .DS_Store

@@ -30,16 +30,33 @@ const commentCfg: CommentConfig = {
   enabled: config.commenting.enabled,
   dryRun: config.commenting.dryRun,
   delayBetweenMs: config.commenting.delayBetweenMs,
+  template: config.commenting.template,
 };
+
+function isBlacklisted(author: string, subreddit: string): boolean {
+  const b = config.blacklist;
+  if (b.users.some((u) => u.toLowerCase() === author.toLowerCase())) {
+    console.log(`  ⏭️ Skipping blacklisted user: ${author}`);
+    return true;
+  }
+  if (b.subreddits.some((s) => s.toLowerCase() === subreddit.toLowerCase())) {
+    console.log(`  ⏭️ Skipping blacklisted subreddit: ${subreddit}`);
+    return true;
+  }
+  return false;
+}
 
 async function handlePostMatch(
   postId: string,
   text: string,
   author: string,
   postTitle: string,
+  subreddit: string,
   postUrl: string,
   r: any,
 ): Promise<void> {
+  if (isBlacklisted(author, subreddit)) return;
+
   const match = matchPost(text, "");
   if (!match) return;
 
@@ -49,6 +66,7 @@ async function handlePostMatch(
     postTitle,
     postUrl,
     commentCfg,
+    commentCfg.template,
   );
   if (!comment) return;
 
@@ -69,9 +87,12 @@ async function handleCommentMatch(
   text: string,
   author: string,
   postTitle: string,
+  subreddit: string,
   postUrl: string,
   r: any,
 ): Promise<void> {
+  if (isBlacklisted(author, subreddit)) return;
+
   const match = matchPost(text, "");
   if (!match) return;
 
@@ -81,6 +102,7 @@ async function handleCommentMatch(
     postTitle,
     postUrl,
     commentCfg,
+    commentCfg.template,
   );
   if (!comment) return;
 
@@ -170,7 +192,8 @@ export async function scan(): Promise<Lead[]> {
 
             const textForMatch = `${post.title || ""} ${post.selftext || ""}`;
             const postAuthor = post.author?.name || "unknown";
-            await handlePostMatch(post.id, textForMatch, postAuthor, post.title || "", lead.postUrl, r);
+            const subName = post.subreddit?.display_name || "";
+            await handlePostMatch(post.id, textForMatch, postAuthor, post.title || "", subName, lead.postUrl, r);
           }
         }
 
@@ -200,7 +223,8 @@ export async function scan(): Promise<Lead[]> {
                   console.log(`  ✅ Match in comment by ${comment.author?.name} (keyword: "${commentMatch}")`);
 
                   const commentAuthor = comment.author?.name || "unknown";
-                  await handleCommentMatch(comment.id, comment.body || "", commentAuthor, post.title || "", lead.postUrl, r);
+                  const commentSub = comment.subreddit?.display_name || post.subreddit?.display_name || "";
+                  await handleCommentMatch(comment.id, comment.body || "", commentAuthor, post.title || "", commentSub, lead.postUrl, r);
                 }
               }
             }

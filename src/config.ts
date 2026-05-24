@@ -30,6 +30,14 @@ export const config = {
     enabled: true,
     dryRun: true,
     delayBetweenMs: 5000,
+    template:
+      "Great question — we published a detailed breakdown on this at Ellomas. " +
+      "Check it out: {title} — {url}",
+  },
+
+  blacklist: {
+    users: [] as string[],
+    subreddits: [] as string[],
   },
 };
 
