@@ -2,6 +2,9 @@ import snoowrap from "snoowrap";
 import { config } from "./config.js";
 import { isAlreadyProcessed, markProcessed, randomDelay } from "./utils.js";
 import type { Lead } from "./csv-logger.js";
+import { logLead } from "./csv-logger.js";
+import { matchPost } from "./matcher.js";
+import { prepareComment, type CommentConfig } from "./commentator.js";
 
 let reddit: any;
 
@@ -21,6 +24,76 @@ function getClient(): any {
 function snippet(text: string, maxLen = 200): string {
   if (!text) return "";
   return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
+}
+
+const commentCfg: CommentConfig = {
+  enabled: config.commenting.enabled,
+  dryRun: config.commenting.dryRun,
+  delayBetweenMs: config.commenting.delayBetweenMs,
+};
+
+async function handlePostMatch(
+  postId: string,
+  text: string,
+  author: string,
+  postTitle: string,
+  postUrl: string,
+  r: any,
+): Promise<void> {
+  const match = matchPost(text, "");
+  if (!match) return;
+
+  const comment = await prepareComment(
+    match.resource,
+    author,
+    postTitle,
+    postUrl,
+    commentCfg,
+  );
+  if (!comment) return;
+
+  if (!commentCfg.dryRun && commentCfg.enabled) {
+    try {
+      await r.getSubmission(postId).reply(comment);
+      console.log(`  💬 Replied to post t3_${postId} — "${match.resource.title}"`);
+    } catch (err) {
+      console.error(`  ❌ Failed to reply to post t3_${postId}:`, (err as Error).message);
+    }
+  } else {
+    console.log(`  🏜️ [DRY RUN] Would reply to post t3_${postId} — "${match.resource.title}"`);
+  }
+}
+
+async function handleCommentMatch(
+  commentId: string,
+  text: string,
+  author: string,
+  postTitle: string,
+  postUrl: string,
+  r: any,
+): Promise<void> {
+  const match = matchPost(text, "");
+  if (!match) return;
+
+  const comment = await prepareComment(
+    match.resource,
+    author,
+    postTitle,
+    postUrl,
+    commentCfg,
+  );
+  if (!comment) return;
+
+  if (!commentCfg.dryRun && commentCfg.enabled) {
+    try {
+      await r.getComment(commentId).reply(comment);
+      console.log(`  💬 Replied to comment t1_${commentId} — "${match.resource.title}"`);
+    } catch (err) {
+      console.error(`  ❌ Failed to reply to comment t1_${commentId}:`, (err as Error).message);
+    }
+  } else {
+    console.log(`  🏜️ [DRY RUN] Would reply to comment t1_${commentId} — "${match.resource.title}"`);
+  }
 }
 
 export async function scanPost(post: any, term: string): Promise<Lead | null> {
@@ -66,6 +139,8 @@ export async function scan(): Promise<Lead[]> {
   const leads: Lead[] = [];
   const terms = config.searchTerms.map((t) => t.toLowerCase());
 
+  console.log(`   Commenting: ${commentCfg.dryRun ? "🔴 DRY RUN (no actual posts)" : "🟢 LIVE"}`);
+
   for (const subName of config.subreddits) {
     console.log(`\n🔍 Scanning r/${subName}...`);
 
@@ -90,7 +165,12 @@ export async function scan(): Promise<Lead[]> {
           const lead = await scanPost(post, matchedTerm);
           if (lead) {
             leads.push(lead);
+            logLead(lead);
             console.log(`  ✅ Match in post: "${post.title?.slice(0, 80)}" (keyword: "${matchedTerm}")`);
+
+            const textForMatch = `${post.title || ""} ${post.selftext || ""}`;
+            const postAuthor = post.author?.name || "unknown";
+            await handlePostMatch(post.id, textForMatch, postAuthor, post.title || "", lead.postUrl, r);
           }
         }
 
@@ -116,7 +196,11 @@ export async function scan(): Promise<Lead[]> {
                 const lead = await scanComment(comment, commentMatch, post.title || "");
                 if (lead) {
                   leads.push(lead);
+                  logLead(lead);
                   console.log(`  ✅ Match in comment by ${comment.author?.name} (keyword: "${commentMatch}")`);
+
+                  const commentAuthor = comment.author?.name || "unknown";
+                  await handleCommentMatch(comment.id, comment.body || "", commentAuthor, post.title || "", lead.postUrl, r);
                 }
               }
             }

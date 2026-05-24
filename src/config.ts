@@ -25,6 +25,12 @@ export const config = {
     postsPerSubreddit: 25,
     commentsPerPost: 10,
   },
+
+  commenting: {
+    enabled: true,
+    dryRun: true,
+    delayBetweenMs: 5000,
+  },
 };
 
 function validateConfig(): void {
