@@ -4,3 +4,4 @@ dist/
 data/leads.csv
 data/cache.json
 *.log
+.DS_Store
