@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "dotenv": "^16.4.7",
+    "openai": "^6.39.0",
     "snoowrap": "^1.23.0"
   },
   "devDependencies": {
