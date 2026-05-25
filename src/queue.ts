@@ -18,6 +18,7 @@ export interface QueueItem {
   matchedText: string;
   createdAt: string;
   posted: boolean;
+  aiUsed?: boolean;
 }
 
 function loadQueue(): QueueItem[] {

@@ -40,6 +40,14 @@ export const config = {
     subreddits: [] as string[],
   },
 
+  ai: {
+    enabled: true,
+    model: "deepseek-chat",
+    temperature: 0.7,
+    maxTokens: 500,
+    fallbackToTemplate: true,
+  },
+
   schedule: {
     intervalMinutes: 120,
   },
@@ -52,6 +60,9 @@ function validateConfig(): void {
   if (!c.clientSecret) missing.push("REDDIT_CLIENT_SECRET");
   if (!c.username) missing.push("REDDIT_USERNAME");
   if (!c.password) missing.push("REDDIT_PASSWORD");
+  if (config.ai?.enabled !== false && !process.env.DEEPSEEK_API_KEY) {
+    missing.push("DEEPSEEK_API_KEY (set it or set ai.enabled: false in config)");
+  }
   if (missing.length > 0) {
     console.error(`Missing required env vars: ${missing.join(", ")}`);
     console.error("Copy .env.example to .env and fill in your credentials.");

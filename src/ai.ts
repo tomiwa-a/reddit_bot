@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { Resource } from "./resources.js";
+import { config } from "./config.js";
 import { buildPrompt } from "./prompts.js";
 
 const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
@@ -42,13 +43,13 @@ export async function generateAiReply(
   const { system, user } = buildPrompt(resource, postText);
 
   const response = await c.chat.completions.create({
-    model: "deepseek-chat",
+    model: config.ai?.model || "deepseek-chat",
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    temperature: 0.7,
-    max_tokens: 500,
+    temperature: config.ai?.temperature ?? 0.7,
+    max_tokens: config.ai?.maxTokens ?? 500,
   });
 
   const text = response.choices[0]?.message?.content?.trim() || "";

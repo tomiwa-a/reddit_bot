@@ -5,6 +5,7 @@ import type { Lead } from "./csv-logger.js";
 import { logLead } from "./csv-logger.js";
 import { matchPost } from "./matcher.js";
 import { buildComment } from "./commentator.js";
+import { generateAiReply } from "./ai.js";
 import { enqueue } from "./queue.js";
 
 let reddit: any;
@@ -40,6 +41,24 @@ function isBlacklisted(author: string, subreddit: string): boolean {
   return false;
 }
 
+async function generateCommentText(
+  text: string,
+  resource: import("./resources.js").Resource,
+): Promise<{ comment: string; aiUsed: boolean }> {
+  if (config.ai?.enabled !== false) {
+    try {
+      const result = await generateAiReply(resource, text);
+      const costStr = result.costEstimate.toFixed(6);
+      console.log(`  🤖 AI generated reply (${result.inputTokens} in / ${result.outputTokens} out — $${costStr})`);
+      return { comment: result.text, aiUsed: true };
+    } catch (err) {
+      console.warn(`  ⚠️ AI generation failed: ${(err as Error).message}. Falling back to template.`);
+    }
+  }
+
+  return { comment: buildComment(resource, config.commenting.template), aiUsed: false };
+}
+
 async function handlePostMatch(
   postId: string,
   text: string,
@@ -53,7 +72,7 @@ async function handlePostMatch(
   const match = matchPost(text, "");
   if (!match) return;
 
-  const comment = buildComment(match.resource, config.commenting.template);
+  const { comment, aiUsed } = await generateCommentText(text, match.resource);
 
   enqueue({
     type: "post",
@@ -64,6 +83,7 @@ async function handlePostMatch(
     postTitle,
     postUrl,
     matchedText: text,
+    aiUsed,
   });
 }
 
@@ -80,7 +100,7 @@ async function handleCommentMatch(
   const match = matchPost(text, "");
   if (!match) return;
 
-  const comment = buildComment(match.resource, config.commenting.template);
+  const { comment, aiUsed } = await generateCommentText(text, match.resource);
 
   enqueue({
     type: "comment",
@@ -91,6 +111,7 @@ async function handleCommentMatch(
     postTitle,
     postUrl,
     matchedText: text,
+    aiUsed,
   });
 }
 
