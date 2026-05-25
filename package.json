@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "scan": "tsx src/index.ts",
+    "post-queued": "tsx src/post-queued.ts",
+    "watch": "tsx src/watch.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

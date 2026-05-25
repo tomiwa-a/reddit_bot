@@ -6,6 +6,11 @@ export interface MatchResult {
   matchedTags: string[];
 }
 
+function tagMatches(lowerText: string, tag: string): boolean {
+  const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escaped}\\b`).test(lowerText);
+}
+
 export function findBestMatch(text: string): MatchResult | null {
   const lower = text.toLowerCase();
   let best: MatchResult | null = null;
@@ -13,7 +18,7 @@ export function findBestMatch(text: string): MatchResult | null {
   for (const resource of resources) {
     const matchedTags: string[] = [];
     for (const tag of resource.tags) {
-      if (lower.includes(tag.toLowerCase())) {
+      if (tagMatches(lower, tag.toLowerCase())) {
         matchedTags.push(tag);
       }
     }

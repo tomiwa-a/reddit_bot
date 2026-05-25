@@ -39,6 +39,10 @@ export const config = {
     users: [] as string[],
     subreddits: [] as string[],
   },
+
+  schedule: {
+    intervalMinutes: 120,
+  },
 };
 
 function validateConfig(): void {

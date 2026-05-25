@@ -3,6 +3,8 @@ dist/
 .env
 data/leads.csv
 data/comments.csv
+data/replies.csv
 data/cache.json
+data/queue.json
 *.log
 .DS_Store

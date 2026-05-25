@@ -1,6 +1,6 @@
 import { config } from "./config.js";
 import { scan } from "./scanner.js";
-import { logLead, getCsvPath } from "./csv-logger.js";
+import { getCsvPath } from "./csv-logger.js";
 
 async function main() {
   console.log(`🚀 Ellomas Reddit Scanner starting at ${new Date().toISOString()}`);
@@ -9,15 +9,9 @@ async function main() {
 
   const leads = await scan();
 
-  if (leads.length === 0) {
-    console.log("\n📭 No leads found this scan.");
-  } else {
-    console.log(`\n📊 Found ${leads.length} lead(s). Writing to CSV...`);
-    for (const lead of leads) {
-      logLead(lead);
-    }
-    console.log(`\n✅ Done. Leads saved to ${getCsvPath()}`);
-  }
+  console.log(`\n📊 Scanned ${config.subreddits.length} subreddit(s), found ${leads.length} lead(s).`);
+  console.log(`   Leads saved to ${getCsvPath()}`);
+  console.log(`   Run 'npm run post-queued' to review and post queued comments.`);
 }
 
 main().catch((err) => {

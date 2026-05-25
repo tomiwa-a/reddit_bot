@@ -27,11 +27,11 @@ export interface CommentLog {
   reason?: string;
 }
 
-const DEFAULT_TEMPLATE =
-  "Hey — we actually wrote a detailed breakdown of this at Ellomas. " +
+export const DEFAULT_TEMPLATE =
+  "Great question — we published a detailed breakdown on this at Ellomas. " +
   "Check it out: {title} — {url}";
 
-function buildComment(resource: Resource, template?: string): string {
+export function buildComment(resource: Resource, template?: string): string {
   const tpl = template || DEFAULT_TEMPLATE;
   let comment = tpl
     .replace(/\{title\}/g, resource.title)

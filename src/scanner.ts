@@ -4,11 +4,12 @@ import { isAlreadyProcessed, markProcessed, randomDelay } from "./utils.js";
 import type { Lead } from "./csv-logger.js";
 import { logLead } from "./csv-logger.js";
 import { matchPost } from "./matcher.js";
-import { prepareComment, type CommentConfig } from "./commentator.js";
+import { buildComment } from "./commentator.js";
+import { enqueue } from "./queue.js";
 
 let reddit: any;
 
-function getClient(): any {
+export function getClient(): any {
   if (!reddit) {
     reddit = new snoowrap({
       userAgent: config.reddit.userAgent,
@@ -25,13 +26,6 @@ function snippet(text: string, maxLen = 200): string {
   if (!text) return "";
   return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
 }
-
-const commentCfg: CommentConfig = {
-  enabled: config.commenting.enabled,
-  dryRun: config.commenting.dryRun,
-  delayBetweenMs: config.commenting.delayBetweenMs,
-  template: config.commenting.template,
-};
 
 function isBlacklisted(author: string, subreddit: string): boolean {
   const b = config.blacklist;
@@ -53,33 +47,24 @@ async function handlePostMatch(
   postTitle: string,
   subreddit: string,
   postUrl: string,
-  r: any,
 ): Promise<void> {
   if (isBlacklisted(author, subreddit)) return;
 
   const match = matchPost(text, "");
   if (!match) return;
 
-  const comment = await prepareComment(
-    match.resource,
+  const comment = buildComment(match.resource, config.commenting.template);
+
+  enqueue({
+    type: "post",
+    parentId: postId,
+    comment,
+    resource: match.resource,
     author,
     postTitle,
     postUrl,
-    commentCfg,
-    commentCfg.template,
-  );
-  if (!comment) return;
-
-  if (!commentCfg.dryRun && commentCfg.enabled) {
-    try {
-      await r.getSubmission(postId).reply(comment);
-      console.log(`  💬 Replied to post t3_${postId} — "${match.resource.title}"`);
-    } catch (err) {
-      console.error(`  ❌ Failed to reply to post t3_${postId}:`, (err as Error).message);
-    }
-  } else {
-    console.log(`  🏜️ [DRY RUN] Would reply to post t3_${postId} — "${match.resource.title}"`);
-  }
+    matchedText: text,
+  });
 }
 
 async function handleCommentMatch(
@@ -89,33 +74,24 @@ async function handleCommentMatch(
   postTitle: string,
   subreddit: string,
   postUrl: string,
-  r: any,
 ): Promise<void> {
   if (isBlacklisted(author, subreddit)) return;
 
   const match = matchPost(text, "");
   if (!match) return;
 
-  const comment = await prepareComment(
-    match.resource,
+  const comment = buildComment(match.resource, config.commenting.template);
+
+  enqueue({
+    type: "comment",
+    parentId: commentId,
+    comment,
+    resource: match.resource,
     author,
     postTitle,
     postUrl,
-    commentCfg,
-    commentCfg.template,
-  );
-  if (!comment) return;
-
-  if (!commentCfg.dryRun && commentCfg.enabled) {
-    try {
-      await r.getComment(commentId).reply(comment);
-      console.log(`  💬 Replied to comment t1_${commentId} — "${match.resource.title}"`);
-    } catch (err) {
-      console.error(`  ❌ Failed to reply to comment t1_${commentId}:`, (err as Error).message);
-    }
-  } else {
-    console.log(`  🏜️ [DRY RUN] Would reply to comment t1_${commentId} — "${match.resource.title}"`);
-  }
+    matchedText: text,
+  });
 }
 
 export async function scanPost(post: any, term: string): Promise<Lead | null> {
@@ -161,8 +137,6 @@ export async function scan(): Promise<Lead[]> {
   const leads: Lead[] = [];
   const terms = config.searchTerms.map((t) => t.toLowerCase());
 
-  console.log(`   Commenting: ${commentCfg.dryRun ? "🔴 DRY RUN (no actual posts)" : "🟢 LIVE"}`);
-
   for (const subName of config.subreddits) {
     console.log(`\n🔍 Scanning r/${subName}...`);
 
@@ -188,12 +162,12 @@ export async function scan(): Promise<Lead[]> {
           if (lead) {
             leads.push(lead);
             logLead(lead);
-            console.log(`  ✅ Match in post: "${post.title?.slice(0, 80)}" (keyword: "${matchedTerm}")`);
+            console.log(`  ✅ Keyword match in post: "${post.title?.slice(0, 80)}" (keyword: "${matchedTerm}")`);
 
             const textForMatch = `${post.title || ""} ${post.selftext || ""}`;
             const postAuthor = post.author?.name || "unknown";
             const subName = post.subreddit?.display_name || "";
-            await handlePostMatch(post.id, textForMatch, postAuthor, post.title || "", subName, lead.postUrl, r);
+            await handlePostMatch(post.id, textForMatch, postAuthor, post.title || "", subName, lead.postUrl);
           }
         }
 
@@ -220,11 +194,11 @@ export async function scan(): Promise<Lead[]> {
                 if (lead) {
                   leads.push(lead);
                   logLead(lead);
-                  console.log(`  ✅ Match in comment by ${comment.author?.name} (keyword: "${commentMatch}")`);
+                  console.log(`  ✅ Keyword match in comment by ${comment.author?.name} (keyword: "${commentMatch}")`);
 
                   const commentAuthor = comment.author?.name || "unknown";
                   const commentSub = comment.subreddit?.display_name || post.subreddit?.display_name || "";
-                  await handleCommentMatch(comment.id, comment.body || "", commentAuthor, post.title || "", commentSub, lead.postUrl, r);
+                  await handleCommentMatch(comment.id, comment.body || "", commentAuthor, post.title || "", commentSub, lead.postUrl);
                 }
               }
             }
