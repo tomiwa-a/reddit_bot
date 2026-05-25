@@ -4,6 +4,7 @@ dist/
 data/leads.csv
 data/comments.csv
 data/replies.csv
+data/ai-usage.csv
 data/cache.json
 data/queue.json
 *.log

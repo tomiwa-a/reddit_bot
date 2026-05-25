@@ -6,6 +6,7 @@ import { logLead } from "./csv-logger.js";
 import { matchPost } from "./matcher.js";
 import { buildComment } from "./commentator.js";
 import { generateAiReply } from "./ai.js";
+import { logAiUsage } from "./cost-tracker.js";
 import { enqueue } from "./queue.js";
 
 let reddit: any;
@@ -50,6 +51,9 @@ async function generateCommentText(
       const result = await generateAiReply(resource, text);
       const costStr = result.costEstimate.toFixed(6);
       console.log(`  🤖 AI generated reply (${result.inputTokens} in / ${result.outputTokens} out — $${costStr})`);
+
+      logAiUsage(resource.title, result.inputTokens, result.outputTokens, result.costEstimate, result.model);
+
       return { comment: result.text, aiUsed: true };
     } catch (err) {
       console.warn(`  ⚠️ AI generation failed: ${(err as Error).message}. Falling back to template.`);

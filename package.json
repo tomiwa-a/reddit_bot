@@ -8,6 +8,7 @@
     "scan": "tsx src/index.ts",
     "post-queued": "tsx src/post-queued.ts",
     "watch": "tsx src/watch.ts",
+    "ai-costs": "tsx src/ai-costs.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

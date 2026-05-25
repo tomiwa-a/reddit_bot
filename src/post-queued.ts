@@ -16,7 +16,12 @@ async function main() {
   const r = getClient();
 
   for (const item of pending) {
-    console.log(`[${item.id}] ${item.type} by ${item.author} — "${item.resource.title}"`);
+    const aiLabel = item.aiUsed ? "🤖 AI" : "📝 Template";
+    console.log(`[${item.id}] ${aiLabel} · ${item.type} by u/${item.author}`);
+    console.log(`   Post: "${item.postTitle.slice(0, 80)}"`);
+    console.log(`   Resource: ${item.resource.title}`);
+    console.log(`   Comment preview: "${item.comment.slice(0, 120)}..."`);
+    console.log("");
 
     try {
       if (item.type === "post") {
@@ -42,9 +47,9 @@ async function main() {
         item.resource.url,
       );
 
-      console.log(`  ✅ Posted — "${item.resource.title}"`);
+      console.log(`  ✅ Posted\n`);
     } catch (err) {
-      console.error(`  ❌ Failed to post: ${(err as Error).message}`);
+      console.error(`  ❌ Failed to post: ${(err as Error).message}\n`);
     }
 
     const delay = config.commenting.delayBetweenMs || 5000;
@@ -52,7 +57,7 @@ async function main() {
   }
 
   removePosted();
-  console.log(`\n✅ Done. Posted ${pending.length} comment(s).`);
+  console.log(`✅ Done. Posted ${pending.length} comment(s).`);
 }
 
 main().catch((err) => {
