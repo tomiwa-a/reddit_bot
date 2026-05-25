@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { Resource } from "./resources.js";
+import { buildPrompt } from "./prompts.js";
 
 const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 
@@ -38,36 +39,13 @@ export async function generateAiReply(
   postText: string,
 ): Promise<AiReplyResult> {
   const c = getClient();
-
-  const systemPrompt = [
-    "You are a senior infrastructure engineer at Ellomas Technologies.",
-    "Your job is to write helpful, natural replies to Reddit users who are discussing technical problems.",
-    "Reference the Ellomas article when it's genuinely relevant to their question.",
-    "Rules:",
-    "- Be genuinely helpful, not salesy",
-    "- Never mention you are an AI or a bot",
-    "- Keep replies concise (2-4 paragraphs max)",
-    "- Use a natural, conversational tone",
-    "- Only reference the article if it actually relates to what they're asking",
-  ].join("\n");
-
-  const userPrompt = [
-    `Ellomas article: "${resource.title}"`,
-    `Article URL: ${resource.url}`,
-    "",
-    "Reddit user is saying:",
-    postText,
-    "",
-    "Write a helpful reply that addresses their question or comment.",
-    "If the Ellomas article is relevant, mention it naturally.",
-    "If it's not relevant, just give helpful advice without mentioning the article.",
-  ].join("\n");
+  const { system, user } = buildPrompt(resource, postText);
 
   const response = await c.chat.completions.create({
     model: "deepseek-chat",
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "system", content: system },
+      { role: "user", content: user },
     ],
     temperature: 0.7,
     max_tokens: 500,
