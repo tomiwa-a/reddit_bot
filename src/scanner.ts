@@ -45,10 +45,11 @@ function isBlacklisted(author: string, subreddit: string): boolean {
 async function generateCommentText(
   text: string,
   resource: import("./resources.js").Resource,
+  subreddit?: string,
 ): Promise<{ comment: string; aiUsed: boolean }> {
   if (config.ai?.enabled !== false) {
     try {
-      const result = await generateAiReply(resource, text);
+      const result = await generateAiReply(resource, text, subreddit);
       const costStr = result.costEstimate.toFixed(6);
       console.log(`  🤖 AI generated reply (${result.inputTokens} in / ${result.outputTokens} out — $${costStr})`);
 
@@ -76,7 +77,7 @@ async function handlePostMatch(
   const match = matchPost(text, "");
   if (!match) return;
 
-  const { comment, aiUsed } = await generateCommentText(text, match.resource);
+  const { comment, aiUsed } = await generateCommentText(text, match.resource, subreddit);
 
   enqueue({
     type: "post",
@@ -104,7 +105,7 @@ async function handleCommentMatch(
   const match = matchPost(text, "");
   if (!match) return;
 
-  const { comment, aiUsed } = await generateCommentText(text, match.resource);
+  const { comment, aiUsed } = await generateCommentText(text, match.resource, subreddit);
 
   enqueue({
     type: "comment",

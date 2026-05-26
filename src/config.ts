@@ -44,7 +44,7 @@ export const config = {
     enabled: true,
     model: "deepseek-chat",
     temperature: 0.7,
-    maxTokens: 500,
+    maxTokens: 250,
     fallbackToTemplate: true,
   },
 

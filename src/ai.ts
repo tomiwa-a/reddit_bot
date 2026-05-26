@@ -38,9 +38,10 @@ const OUTPUT_COST_PER_1M = 0.28;
 export async function generateAiReply(
   resource: Resource,
   postText: string,
+  subreddit?: string,
 ): Promise<AiReplyResult> {
   const c = getClient();
-  const { system, user } = buildPrompt(resource, postText);
+  const { system, user } = buildPrompt(resource, postText, subreddit);
 
   const response = await c.chat.completions.create({
     model: config.ai?.model || "deepseek-chat",
