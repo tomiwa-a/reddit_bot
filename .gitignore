@@ -1,4 +1,11 @@
-node_modules
-.DS_Store
-dist
+node_modules/
+dist/
 .env
+data/leads.csv
+data/comments.csv
+data/replies.csv
+data/ai-usage.csv
+data/cache.json
+data/queue.json
+*.log
+.DS_Store
